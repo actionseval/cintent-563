@@ -1,0 +1,55 @@
+name: Tests
+
+# CINTENT >> MANUAL_TRIGGER
+# on:
+#   pull_request:
+#     branches:
+#       - master
+#     paths:
+#       - 'setup.py'
+#       - 'lithops/**'
+#   workflow_dispatch: 
+#   # this allows to run the workflow manually through the github dashboard
+on: [repository_dispatch, workflow_dispatch]
+
+jobs:
+
+  localhost_tests:
+    # CINTENT >> CHANGE_VERSION
+    # runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+
+    steps:
+      - name: Clone Lithops repository
+        uses: actions/checkout@v4
+
+      - name: Install Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # CINTENT >> INSERT_CINTENT
+      - uses: JavidDitty/setup-cintent@3e5b2faf83a2ad32c22a1cd0f86f5f20ea53a5ab
+
+      - name: Install Lithops
+        run: |
+          pip3 install -U .[tests]
+
+      - name: Run Lithops tests
+        run: |
+          cd lithops/tests
+          pytest -v --backend localhost --storage localhost
+
+      # CINTENT >> INSERT_CINTENT
+      - name: Upload CIntent Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CINTENT_ARTIFACT_NAME }}
+          path: ${{ env.CINTENT_LOGS }}
